@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#111318" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Calculadora">
+<meta name="application-name" content="Calculadora">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Calculadora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--fg);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;transition:background .2s}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;position:relative;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.screen{touch-action:none;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 24px 14px;position:relative}
+#dot{position:absolute;top:14px;left:14px;width:4px;height:4px;border-radius:50%;background:var(--fg);opacity:.28;display:none}
+.keys{display:grid;grid-template-columns:repeat(4,1fr)}
+.keys button{aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.ios-only,.and-only{display:none}
+
+/* ===== iPhone ===== */
+body.ios{--bg:#000;--fg:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif}
+body.ios .ios-only{display:grid}
+body.ios .ios-only.flex{display:flex}
+#iosVal{font-size:86px;font-weight:300;text-align:right;white-space:nowrap;overflow:hidden;line-height:1.05;letter-spacing:-1px}
+body.ios .keys{gap:14px;padding:0 18px 34px}
+body.ios .keys button{border-radius:50%;font-size:36px;font-weight:400;color:#fff;background:#333;transition:filter .25s,background .25s,color .25s}
+body.ios .keys button.f{background:#a5a5a5;color:#000;font-size:30px;font-weight:500}
+body.ios .keys button.o{background:#ff9f0a;color:#fff;font-size:42px}
+body.ios .keys button.o.sel{background:#fff;color:#ff9f0a}
+body.ios .keys button.zero{grid-column:span 2;aspect-ratio:auto;border-radius:999px;justify-content:flex-start;padding-left:13%}
+body.ios .keys button:active,body.ios .keys button.p{filter:brightness(1.45);transition:none}
+
+/* ===== Android ===== */
+body.and{font-family:Roboto,"Google Sans",system-ui,sans-serif}
+body.and.dark{--bg:#111318;--fg:#e3e2e6;--muted:#8e9099;--num:#2b2e35;--numfg:#e3e2e6;--op:#3d4a61;--opfg:#d6e3ff;--ac:#633b48;--acfg:#ffd8e4;--eq:#a8c7fa;--eqfg:#062e6f}
+body.and.light{--bg:#f8f9ff;--fg:#1b1b1f;--muted:#5f6368;--num:#e7ebf3;--numfg:#1b1b1f;--op:#d3e3fd;--opfg:#041e49;--ac:#ffd8e4;--acfg:#31111d;--eq:#0b57d0;--eqfg:#fff}
+body.and .and-only{display:grid}
+body.and .and-only.flex{display:flex}
+.topbar{justify-content:flex-end;gap:22px;padding:14px 22px 0;color:var(--muted)}
+.topbar svg{width:24px;height:24px}
+#andPrev{font-size:26px;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;min-height:34px}
+#andMain{font-size:64px;font-weight:400;text-align:right;white-space:nowrap;overflow-x:auto;scrollbar-width:none;line-height:1.15}
+#andMain::-webkit-scrollbar{display:none}
+#andPreview{font-size:34px;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;min-height:44px}
+body.and .keys{gap:10px;padding:8px 16px 26px}
+body.and .keys button{border-radius:50%;font-size:32px;background:var(--num);color:var(--numfg);transition:border-radius .18s ease,filter .18s}
+body.and .keys button.o{background:var(--op);color:var(--opfg)}
+body.and .keys button.ac{background:var(--ac);color:var(--acfg);font-size:26px;font-weight:500}
+body.and .keys button.eq{background:var(--eq);color:var(--eqfg)}
+body.and .keys button.sm{font-size:26px}
+body.and .keys button svg{width:30px;height:30px}
+body.and .keys button:active,body.and .keys button.p{border-radius:28%;filter:brightness(1.12);transition:border-radius .08s}
+
+/* ===== Botón instalar ===== */
+#installFab{position:absolute;top:calc(env(safe-area-inset-top) + 12px);left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;background:#a8c7fa;color:#062e6f;font-family:system-ui,-apple-system,Roboto,sans-serif;font-size:15px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap}
+#installFab[hidden]{display:none}
+#instModal{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,Roboto,sans-serif}
+#instModal[hidden]{display:none}
+#instModal .box{background:#1e1f24;color:#eee;border-radius:20px;padding:20px;max-width:360px;width:100%}
+#instModal h3{margin:0 0 8px;font-size:18px}
+#instModal ol{margin:8px 0 0;padding-left:20px;line-height:1.5;font-size:15px}
+#instModal p{font-size:15px;line-height:1.5;margin:8px 0 0}
+#instModal button{width:100%;margin-top:16px;padding:12px;border-radius:12px;background:#a8c7fa;color:#062e6f;font-size:15px;font-weight:600}
+/* ===== Panel secreto ===== */
+#cfg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10;display:flex;align-items:flex-end;justify-content:center;font-family:system-ui,-apple-system,Roboto,sans-serif}
+#cfg[hidden]{display:none}
+.sheet{background:#1e1f24;color:#eee;width:100%;max-width:480px;max-height:92dvh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 18px 28px;user-select:auto;-webkit-user-select:auto}
+.sheet h2{margin:0 0 12px;font-size:19px;font-weight:600}
+.sheet .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#9aa0aa;margin:16px 0 7px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{background:#2c2e35;color:#ddd;padding:9px 12px;border-radius:10px;font-size:14px}
+.seg button.on{background:#a8c7fa;color:#062e6f;font-weight:600}
+.sheet input[type=text],.sheet input[type=number]{width:100%;background:#2c2e35;border:1px solid #3a3d46;color:#fff;border-radius:10px;padding:11px 12px;font-size:20px;margin-top:8px;-webkit-user-select:text;user-select:text}
+.sheet .row{display:flex;gap:8px;margin-top:18px}
+.sheet .row button{flex:1;padding:13px;border-radius:12px;font-size:16px;font-weight:600}
+#arm{background:#a8c7fa;color:#062e6f}
+#disarm{background:#2c2e35;color:#ddd}
+#close{width:100%;margin-top:8px;padding:12px;border-radius:12px;background:transparent;color:#9aa0aa;font-size:15px}
+.help{font-size:13.5px;line-height:1.45;color:#b8bcc6;margin:10px 0 0}
+.help.small{font-size:12px;color:#8a8f99}
+#willBe{font-size:14px;color:#a8c7fa;margin-top:8px}
+#state{font-size:13px;margin-left:8px;padding:3px 8px;border-radius:8px;background:#2c2e35;color:#9aa0aa;vertical-align:middle}
+#state.on{background:#1f4d2e;color:#9fe3b4}
+.chk{display:flex;gap:10px;align-items:center;font-size:14px;margin-top:14px;color:#ccc}
+.chk input{width:20px;height:20px}
+</style>
+</head>
+<body class="and dark">
+<div id="app">
+  <button id="installFab" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Instalar app</button>
+  <div class="topbar and-only flex">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+    <svg id="menuBtn" viewBox="0 0 24 24" fill="currentColor" style="cursor:pointer"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+  </div>
+  <div class="screen" id="screen">
+    <div id="dot"></div>
+    <div class="and-only" style="display:none" id="andWrap">
+      <div id="andPrev"></div>
+      <div id="andMain">0</div>
+      <div id="andPreview"></div>
+    </div>
+    <div id="iosVal" class="ios-only flex" style="justify-content:flex-end">0</div>
+  </div>
+
+  <div class="keys ios-only" id="iosKeys">
+    <button class="f" data-a="clear" id="iosAC">AC</button>
+    <button class="f" data-a="neg">±</button>
+    <button class="f" data-a="pct">%</button>
+    <button class="o" data-a="op" data-v="/">÷</button>
+    <button data-a="d" data-v="7">7</button><button data-a="d" data-v="8">8</button><button data-a="d" data-v="9">9</button>
+    <button class="o" data-a="op" data-v="*">×</button>
+    <button data-a="d" data-v="4">4</button><button data-a="d" data-v="5">5</button><button data-a="d" data-v="6">6</button>
+    <button class="o" data-a="op" data-v="-">−</button>
+    <button data-a="d" data-v="1">1</button><button data-a="d" data-v="2">2</button><button data-a="d" data-v="3">3</button>
+    <button class="o" data-a="op" data-v="+">+</button>
+    <button class="zero" data-a="d" data-v="0">0</button>
+    <button data-a="d" data-v=".">,</button>
+    <button class="o" data-a="eq">=</button>
+  </div>
+
+  <div class="keys and-only" id="andKeys">
+    <button class="ac" data-a="clear">AC</button>
+    <button class="o sm" data-a="paren">( )</button>
+    <button class="o" data-a="pct">%</button>
+    <button class="o" data-a="op" data-v="/">÷</button>
+    <button data-a="d" data-v="7">7</button><button data-a="d" data-v="8">8</button><button data-a="d" data-v="9">9</button>
+    <button class="o" data-a="op" data-v="*">×</button>
+    <button data-a="d" data-v="4">4</button><button data-a="d" data-v="5">5</button><button data-a="d" data-v="6">6</button>
+    <button class="o" data-a="op" data-v="-">−</button>
+    <button data-a="d" data-v="1">1</button><button data-a="d" data-v="2">2</button><button data-a="d" data-v="3">3</button>
+    <button class="o" data-a="op" data-v="+">+</button>
+    <button data-a="d" data-v="0">0</button>
+    <button data-a="d" data-v=".">,</button>
+    <button data-a="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M21 5H8l-6 7 6 7h13a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="M11 9l6 6M17 9l-6 6"/></svg></button>
+    <button class="eq" data-a="eq">=</button>
+  </div>
+</div>
+
+<div id="instModal" hidden><div class="box"><h3>Instalar Calculadora</h3><div id="instSteps"></div><button id="instClose">Entendido</button></div></div>
+<div id="cfg" hidden>
+  <div class="sheet">
+    <h2>Configuración secreta <span id="state">Desarmada</span></h2>
+
+    <div class="lbl">Estética</div>
+    <div class="seg" data-k="theme">
+      <button data-v="and-dark">Android oscuro</button>
+      <button data-v="and-light">Android claro</button>
+      <button data-v="ios">iPhone</button>
+    </div>
+
+    <div class="lbl">Número a forzar</div>
+    <div class="seg" data-k="src">
+      <button data-v="fijo">Número fijo</button>
+      <button data-v="hora">Hora (HHMM)</button>
+      <button data-v="fechahora">Fecha+hora (DDMMHHMM)</button>
+      <button data-v="fecha">Fecha (DDMMAAAA)</button>
+    </div>
+    <input type="text" id="fijo" inputmode="decimal" placeholder="Ej: 2711" autocomplete="off">
+    <div id="adelWrap">
+      <input type="number" id="adel" inputmode="numeric" placeholder="Minutos de adelanto (ej: 3)">
+    </div>
+    <div id="willBe"></div>
+
+    <div class="lbl">Método</div>
+    <div class="seg" data-k="method">
+      <button data-v="suma">Suma secreta</button>
+      <button data-v="directo">Directo con =</button>
+    </div>
+    <div id="nthWrap"><div class="lbl">¿En qué número de la suma se fuerza?</div>
+    <div class="seg" data-k="nth"><button data-v="2">2.º</button><button data-v="3">3.º</button><button data-v="4">4.º</button><button data-v="5">5.º</button></div>
+    <div class="lbl">Toques del espectador hasta completar el número</div>
+    <div class="seg" data-k="taps"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button><button data-v="6">6</button><button data-v="d">1 dígito por toque</button></div></div>
+    <p class="help" id="help"></p>
+
+    <label class="chk"><input type="checkbox" id="dotChk"> Mostrar un puntito casi invisible arriba a la izquierda cuando está armada</label>
+
+    <div class="row"><button id="disarm">Desarmar</button><button id="arm">Armar</button></div>
+    <button id="installBtn" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;background:#2c2e35;color:#a8c7fa;font-size:15px;font-weight:600">📲 Instalar como app</button>
+    <button id="close">Cerrar</button>
+    <p class="help small">Atajo rápido: escribí tu número en la calculadora y tocá «=» tres veces seguidas → queda armada con ese número y la pantalla vuelve a 0 · En Android también abre este panel el ícono ⋮ de arriba · Mantener apretado el visor ~1 seg también lo abre · Tocá el visor 3 veces rápido para rearmar con la última configuración · AC siempre reinicia y deja la calculadora armada con lo que guardaste acá.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const DEF={theme:'and-dark',src:'fijo',fijo:'',adel:'',method:'suma',nth:'3',taps:'4',dot:true,armed:false};
+let cfg=Object.assign({},DEF);
+try{Object.assign(cfg,JSON.parse(localStorage.getItem('calc-cfg')||'{}'))}catch(e){}
+function save(){try{localStorage.setItem('calc-cfg',JSON.stringify(cfg))}catch(e){}}
+
+const S={toks:[],afterEq:false,result:'0',prevExpr:'',forcing:null,lastOp:null,lastArg:null};
+const P={'+':1,'-':1,'*':2,'/':2};
+const SYM={'+':'+','-':'−','*':'×','/':'÷'};
+const isIOS=()=>cfg.theme==='ios';
+const last=()=>S.toks[S.toks.length-1];
+
+/* ---------- números ---------- */
+function numToStr(n){
+  if(!isFinite(n))return 'Error';
+  let r=parseFloat(n.toPrecision(12));
+  if(r===0)return '0';
+  const a=Math.abs(r);
+  if(a>=1e15||a<1e-9)return r.toExponential(8).replace(/\.?0+e/,'e');
+  return String(r);
+}
+function fmt(s){
+  if(s==null||s==='')return '';
+  if(s==='Error')return 'Error';
+  let neg=s[0]==='-';if(neg)s=s.slice(1);
+  if(/e/i.test(s))return (neg?'−':'')+s.replace('.',',').replace('e+','e').replace('e-','e−');
+  let [i,d]=s.split('.');
+  i=i.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  return (neg?'−':'')+i+(d!==undefined?','+d:'');
+}
+function depth(t){let d=0;for(const x of t){if(x.t==='(')d++;else if(x.t===')')d--}return d}
+function trim(t){t=t.slice();while(t.length&&(t[t.length-1].t==='op'||t[t.length-1].t==='('))t.pop();return t}
+function evaluate(toks){
+  const t=trim(toks);if(!t.length)return NaN;
+  const out=[],st=[];
+  for(const x of t){
+    if(x.t==='num')out.push(parseFloat(x.s));
+    else if(x.t==='op'){while(st.length&&st[st.length-1].t==='op'&&P[st[st.length-1].v]>=P[x.v])out.push(st.pop());st.push(x)}
+    else if(x.t==='(')st.push(x);
+    else{while(st.length&&st[st.length-1].t!=='(')out.push(st.pop());st.pop()}
+  }
+  while(st.length){const y=st.pop();if(y.t==='op')out.push(y)}
+  const s=[];
+  for(const y of out){
+    if(typeof y==='number'){s.push(y);continue}
+    const b=s.pop(),a=s.pop();
+    if(a===undefined||b===undefined||isNaN(a)||isNaN(b))return NaN;
+    s.push(ap(a,y.v,b));
+  }
+  return s.length===1?s[0]:NaN;
+}
+function ap(a,o,b){return o==='+'?a+b:o==='-'?a-b:o==='*'?a*b:(b===0?NaN:a/b)}
+
+/* ---------- número objetivo ---------- */
+const p2=n=>String(n).padStart(2,'0');
+function getTarget(){
+  const d=new Date(Date.now()+(parseFloat(cfg.adel)||0)*60000);
+  switch(cfg.src){
+    case 'hora':return Number(p2(d.getHours())+p2(d.getMinutes()));
+    case 'fechahora':return Number(p2(d.getDate())+p2(d.getMonth()+1)+p2(d.getHours())+p2(d.getMinutes()));
+    case 'fecha':return Number(p2(d.getDate())+p2(d.getMonth()+1)+d.getFullYear());
+    default:{let s=String(cfg.fijo||'').trim().replace(/\s/g,'');
+      if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+      const n=parseFloat(s);return isNaN(n)?0:n}
+  }
+}
+
+/* ---------- forzado ---------- */
+function showUpTo(n){
+  const f=S.forcing;n=Math.min(n,f.chars.length);
+  if(n<=f.idx)return;
+  if(f.idx===0)S.toks.push({t:'num',s:''});
+  last().s+=f.chars.slice(f.idx,n);f.idx=n;
+}
+function finishForce(){if(!S.forcing)return;showUpTo(S.forcing.chars.length);S.forcing=null}
+function forceTap(){
+  const f=S.forcing;if(!f)return;
+  f.taps=(f.taps||0)+1;
+  const len=f.chars.length;
+  if(cfg.taps==='d')showUpTo(f.idx+1);
+  else{const N=parseInt(cfg.taps)||1;showUpTo(f.taps>=N?len:Math.floor(len*f.taps/N))}
+  // una vez completo, los toques siguientes no hacen nada hasta el «=»
+}
+
+/* ---------- teclas ---------- */
+function digit(d){
+  if(S.forcing){forceTap();return}
+  if(S.afterEq){S.toks=[];S.afterEq=false}
+  const l=last(),max=isIOS()?9:15;
+  if(l&&l.t==='num'){
+    if(d==='.'){if(l.s.includes('.'))return;l.s+=(l.s===''||l.s==='-')?'0.':'.';return}
+    if(l.s.replace(/[-.]/g,'').length>=max)return;
+    if(l.s==='0')l.s=d;else if(l.s==='-0')l.s='-'+d;else l.s+=d;
+  }else{
+    if(l&&l.t===')')S.toks.push({t:'op',v:'*'});
+    S.toks.push({t:'num',s:d==='.'?'0.':d});
+  }
+}
+function op(o){
+  if(S.forcing){forceTap();return}
+  if(S.afterEq){S.afterEq=false;if(S.result==='Error'){S.toks=[]}}
+  const l=last();
+  if(!l)S.toks.push({t:'num',s:'0'});
+  else if(l.t==='op'){l.v=o;return}
+  else if(l.t==='('){if(o==='-')S.toks.push({t:'num',s:'-0'});return}
+  if(cfg.armed&&cfg.method==='suma'&&(o==='+'||o==='-')&&depth(S.toks)===0&&S.toks.filter(x=>x.t==='num').length>=(parseInt(cfg.nth)||3)-1){
+    const T=evaluate(S.toks);
+    if(isFinite(T)){
+      const tgt=getTarget();
+      let D=o==='+'?tgt-T:T-tgt;
+      D=parseFloat(D.toPrecision(12));
+      if(D<0){o=o==='+'?'-':'+';D=-D}
+      S.forcing={chars:numToStr(D),idx:0};
+      cfg.armed=false;save();
+    }
+  }
+  S.toks.push({t:'op',v:o});
+}
+let eqTaps=[];
+function equals(){
+  const now=Date.now();
+  const single=!S.forcing&&S.toks.length===1&&S.toks[0].t==='num';
+  eqTaps=single?eqTaps.filter(t=>now-t<1500).concat(now):[];
+  if(eqTaps.length>=3){
+    eqTaps=[];const n=parseFloat(S.toks[0].s);
+    if(isFinite(n)){cfg.fijo=String(S.toks[0].s).replace('.',',');cfg.src='fijo';cfg.armed=true;save()}
+    S.toks=[];S.afterEq=false;S.result='0';S.prevExpr='';S.lastOp=null;return;
+  }
+  if(S.forcing)finishForce();
+  const directo=cfg.armed&&cfg.method==='directo';
+  if(S.afterEq&&!directo){
+    if(S.lastOp!==null&&S.result!=='Error'){
+      S.result=numToStr(ap(parseFloat(S.result),S.lastOp,S.lastArg));
+      S.toks=[{t:'num',s:S.result}];
+    }
+    return;
+  }
+  let t=trim(S.toks);
+  if(!t.length&&!directo)return;
+  for(let i=depth(t);i>0;i--)t.push({t:')'});
+  S.lastOp=null;
+  if(!t.some(x=>x.t==='('||x.t===')')&&t.length>=3&&t[t.length-1].t==='num'&&t[t.length-2].t==='op'){
+    S.lastOp=t[t.length-2].v;S.lastArg=parseFloat(t[t.length-1].s);
+  }
+  const expr=exprStr(t);
+  let r=t.length?evaluate(t):0;
+  if(directo){r=getTarget();cfg.armed=false;save();S.lastOp=null;S.prevExpr=''}
+  else S.prevExpr=t.length>1?expr:'';
+  S.result=numToStr(r);
+  S.toks=[{t:'num',s:S.result}];
+  S.afterEq=true;
+}
+function clearKey(){
+  // AC siempre reinicia todo y vuelve a armar con la configuración guardada
+  S.forcing=null;cfg.armed=true;save();eqTaps=[];
+  S.toks=[];S.afterEq=false;S.result='0';S.prevExpr='';S.lastOp=null;
+}
+function back(){
+  if(S.forcing){
+    forceTap();return;
+  }
+  if(S.afterEq){S.toks=[];S.afterEq=false;S.prevExpr='';return}
+  const l=last();if(!l)return;
+  if(l.t==='num'){l.s=l.s.slice(0,-1);if(l.s===''||l.s==='-')S.toks.pop()}
+  else S.toks.pop();
+}
+function pct(){
+  if(S.forcing)return;
+  const l=last();if(!l||l.t!=='num')return;
+  const x=parseFloat(l.s);let v=x/100;
+  const n=S.toks.length;
+  if(isIOS()&&n>=3&&S.toks[n-2].t==='op'&&(S.toks[n-2].v==='+'||S.toks[n-2].v==='-')){
+    const base=evaluate(S.toks.slice(0,n-2));if(isFinite(base))v=base*x/100;
+  }
+  l.s=numToStr(v);
+}
+function neg(){
+  if(S.forcing)return;
+  const l=last();
+  if(l&&l.t==='num'){l.s=l.s[0]==='-'?l.s.slice(1):'-'+l.s;if(S.afterEq)S.result=l.s}
+  else{S.afterEq=false;S.toks.push({t:'num',s:'-0'})}
+}
+function paren(){
+  if(S.forcing)return;
+  S.afterEq=false;
+  const l=last(),d=depth(S.toks);
+  if(d>0&&l&&(l.t==='num'||l.t===')'))S.toks.push({t:')'});
+  else{if(l&&(l.t==='num'||l.t===')'))S.toks.push({t:'op',v:'*'});S.toks.push({t:'('})}
+}
+
+/* ---------- pantalla ---------- */
+function exprStr(t){return t.map(x=>x.t==='num'?fmt(x.s):x.t==='op'?SYM[x.v]:x.t).join('')}
+function iosValue(){
+  if(S.afterEq)return S.result;
+  const l=last();
+  if(!l)return '0';
+  if(l.t==='num')return l.s===''?'0':l.s;
+  for(let i=S.toks.length-1;i>=0;i--)if(S.toks[i].t==='num')return S.toks[i].s||'0';
+  return '0';
+}
+function fit(el,max,min){
+  let s=max;el.style.fontSize=s+'px';
+  while(el.scrollWidth>el.clientWidth&&s>min){s-=2;el.style.fontSize=s+'px'}
+  el.scrollLeft=el.scrollWidth;
+}
+function render(){
+  const ios=isIOS();
+  document.body.className=ios?'ios':'and '+(cfg.theme==='and-light'?'light':'dark');
+  $('#themeColor').setAttribute('content',ios?'#000000':cfg.theme==='and-light'?'#f8f9ff':'#111318');
+  $('#andWrap').style.display=ios?'none':'block';
+  $('#dot').style.display=(cfg.dot&&(cfg.armed||S.forcing))?'block':'none';
+  if(ios){
+    const el=$('#iosVal');el.textContent=fmt(iosValue());fit(el,86,40);
+    const l=last();
+    const typing=l&&l.t==='num'&&!S.afterEq&&S.toks.length>0&&!(S.toks.length===1&&l.s==='0');
+    $('#iosAC').textContent='AC';
+    document.querySelectorAll('#iosKeys .o[data-v]').forEach(b=>b.classList.toggle('sel',!!(l&&l.t==='op'&&l.v===b.dataset.v&&!S.forcing)||(!!S.forcing&&S.forcing.idx===0&&l&&l.t==='op'&&l.v===b.dataset.v)));
+  }else{
+    const main=$('#andMain'),pv=$('#andPreview'),pr=$('#andPrev');
+    if(S.afterEq){main.textContent=fmt(S.result);pr.textContent=S.prevExpr;pv.textContent=''}
+    else{
+      main.textContent=S.toks.length?exprStr(S.toks):'0';
+      pr.textContent=S.prevExpr&&!S.toks.length?S.prevExpr:'';
+      const hasOp=S.toks.some(x=>x.t==='op');
+      const hide=cfg.armed&&cfg.method==='directo';
+      const v=evaluate(S.toks.concat(Array(Math.max(0,depth(S.toks))).fill({t:')'})));
+      pv.textContent='';
+    }
+    fit(main,64,34);
+  }
+}
+
+/* ---------- forzado: cualquier toque coloca el número ---------- */
+function revealAll(){if(S.forcing){forceTap();render();return true}return false}
+document.addEventListener('click',e=>{
+  if(!S.forcing||!$('#cfg').hidden||e.target.closest('#installFab,#instModal'))return;
+  const b=e.target.closest('.keys button');
+  if(b&&(b.dataset.a==='clear'||b.dataset.a==='eq'))return;
+  e.stopPropagation();e.preventDefault();revealAll();
+},true);
+/* ---------- eventos teclado ---------- */
+const ACT={d:b=>digit(b.dataset.v),op:b=>op(b.dataset.v),eq:equals,clear:clearKey,back,pct,neg,paren};
+document.querySelectorAll('.keys button').forEach(b=>{
+  b.addEventListener('pointerdown',()=>b.classList.add('p'));
+  ['pointerup','pointerleave','pointercancel'].forEach(e=>b.addEventListener(e,()=>b.classList.remove('p')));
+  b.addEventListener('click',()=>{ACT[b.dataset.a](b);render()});
+});
+document.addEventListener('keydown',e=>{
+  if(!$('#cfg').hidden)return;
+  const k=e.key;
+  if(/^[0-9]$/.test(k))digit(k);else if(k==='.'||k===',')digit('.');
+  else if('+-*/'.includes(k)&&k.length===1)op(k);
+  else if(k==='Enter'||k==='=')equals();else if(k==='Backspace')back();else if(k==='Escape')clearKey();
+  else return;
+  e.preventDefault();render();
+});
+
+/* ---------- gestos secretos en el visor ---------- */
+let lpTimer=null,sx=0,sy=0,lpFired=false,taps=[];
+const scr=$('#screen');
+scr.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='mouse')return;
+  sx=e.clientX;sy=e.clientY;lpFired=false;
+  lpTimer=setTimeout(()=>{lpFired=true;openCfg()},850);
+});
+scr.addEventListener('pointermove',e=>{if(Math.abs(e.clientX-sx)>12||Math.abs(e.clientY-sy)>12){clearTimeout(lpTimer)}});
+scr.addEventListener('pointerup',e=>{
+  if(e.pointerType!=='mouse')return;
+  clearTimeout(lpTimer);if(lpFired)return;if(revealAll())return;
+  const dx=e.clientX-sx;
+  if(Math.abs(dx)>40&&Math.abs(e.clientY-sy)<40){back();render();return} // deslizar = borrar
+  const now=Date.now();taps=taps.filter(t=>now-t<600);taps.push(now);
+  if(taps.length>=3){taps=[];cfg.armed=true;save();render()}
+});
+scr.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];sx=t.clientX;sy=t.clientY;lpFired=false;clearTimeout(lpTimer);lpTimer=setTimeout(()=>{lpFired=true;openCfg()},850)},{passive:false});
+scr.addEventListener('touchmove',e=>{const t=e.touches[0];if(Math.abs(t.clientX-sx)>12||Math.abs(t.clientY-sy)>12)clearTimeout(lpTimer)},{passive:true});
+scr.addEventListener('touchend',e=>{clearTimeout(lpTimer);if(lpFired)return;if(revealAll())return;const t=e.changedTouches[0];const dx=t.clientX-sx;
+  if(Math.abs(dx)>40&&Math.abs(t.clientY-sy)<40){back();render();return}
+  const now=Date.now();taps=taps.filter(x=>now-x<600);taps.push(now);if(taps.length>=3){taps=[];cfg.armed=true;save();render()}},{passive:true});
+$('#menuBtn').addEventListener('click',openCfg);
+scr.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ---------- panel ---------- */
+let tick=null;
+function openCfg(){
+  $('#fijo').value=cfg.fijo;$('#adel').value=cfg.adel;$('#dotChk').checked=cfg.dot;
+  syncCfg();$('#cfg').hidden=false;
+  clearInterval(tick);tick=setInterval(syncCfg,1000);
+}
+function closeCfg(){$('#cfg').hidden=true;clearInterval(tick);render()}
+function syncCfg(){
+  document.querySelectorAll('.seg').forEach(s=>s.querySelectorAll('button').forEach(b=>b.classList.toggle('on',cfg[s.dataset.k]===b.dataset.v)));
+  $('#fijo').style.display=cfg.src==='fijo'?'block':'none';
+  $('#nthWrap').style.display=cfg.method==='suma'?'block':'none';
+  $('#adelWrap').style.display=(cfg.src==='hora'||cfg.src==='fechahora')?'block':'none';
+  $('#willBe').textContent='Ahora daría: '+fmt(numToStr(getTarget()));
+  $('#state').textContent=cfg.armed?'Armada':'Desarmada';$('#state').classList.toggle('on',!!cfg.armed);
+  $('#help').textContent=cfg.method==='suma'
+    ?'Ej. con 3.º: el espectador pone un número, «+», otro número, «+». Desde ahí, cada toque en cualquier parte (teclas o visor) va completando el número que falta, repartido en la cantidad de toques que elijas. Ya completo, los toques siguientes no hacen nada hasta que se toca «=», que da tu número. Nunca se muestra el resultado antes: solo la cuenta. AC reinicia todo y la deja armada con esta configuración. La suma es real, así que cualquiera puede revisarla. Si el total ya supera tu número, la app pasa a restar sola (en Android se ve el «−»), así que conviene un número grande.'
+    :'La próxima vez que alguien toque «=», el resultado es tu número, sin importar la cuenta. Más simple pero menos sólido: no resiste que alguien rehaga la cuenta. En Android se oculta la vista previa gris mientras está armada.';
+}
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  cfg[b.parentNode.dataset.k]=b.dataset.v;save();syncCfg();render();
+}));
+$('#fijo').addEventListener('input',e=>{cfg.fijo=e.target.value;save();syncCfg()});
+$('#adel').addEventListener('input',e=>{cfg.adel=e.target.value;save();syncCfg()});
+$('#dotChk').addEventListener('change',e=>{cfg.dot=e.target.checked;save()});
+$('#arm').addEventListener('click',()=>{cfg.armed=true;S.forcing=null;save();closeCfg()});
+$('#disarm').addEventListener('click',()=>{cfg.armed=false;S.forcing=null;save();syncCfg();render()});
+$('#close').addEventListener('click',closeCfg);
+$('#cfg').addEventListener('click',e=>{if(e.target.id==='cfg')closeCfg()});
+
+/* ---------- instalación ---------- */
+const ua=navigator.userAgent||'';
+const iOSdev=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isSafari=/^((?!chrome|crios|fxios|edgios|android).)*safari/i.test(ua);
+const isStandalone=()=>(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+let deferredPrompt=null;
+function updateFab(){$('#installFab').hidden=isStandalone();$('#installBtn').hidden=isStandalone()}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;updateFab()});
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;$('#installFab').hidden=true;$('#installBtn').hidden=true});
+try{window.matchMedia('(display-mode: standalone)').addEventListener('change',updateFab)}catch(e){}
+async function doInstall(){
+  if(deferredPrompt){
+    const p=deferredPrompt;deferredPrompt=null;
+    try{p.prompt();const r=await p.userChoice;if(r&&r.outcome==='accepted'){$('#installFab').hidden=true;$('#installBtn').hidden=true}}catch(e){}
+    return;
+  }
+  let h;
+  if(iOSdev&&isSafari)h='<ol><li>Tocá <b>Compartir</b> (el cuadrado con la flecha) en la barra de Safari.</li><li>Elegí <b>«Agregar a inicio»</b>.</li><li>Confirmá. Abrila desde el ícono nuevo: este botón ya no va a aparecer.</li></ol>';
+  else if(iOSdev)h='<p>En iPhone se instala desde <b>Safari</b>. Abrí este mismo link en Safari y tocá de nuevo «Instalar app».</p>';
+  else h='<ol><li>Tocá el menú <b>⋮</b> de Chrome (arriba a la derecha).</li><li>Elegí <b>«Instalar app»</b> o «Agregar a pantalla principal».</li><li>Confirmá. Abrila desde el ícono nuevo: este botón ya no va a aparecer.</li></ol>';
+  $('#instSteps').innerHTML=h;$('#instModal').hidden=false;
+}
+$('#installFab').addEventListener('click',doInstall);
+$('#installBtn').addEventListener('click',doInstall);
+$('#instClose').addEventListener('click',()=>{$('#instModal').hidden=true});
+$('#instModal').addEventListener('click',e=>{if(e.target.id==='instModal')$('#instModal').hidden=true});
+updateFab();
+if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
+window.addEventListener('resize',render);
+render();
+})();
+</script>
+</body>
+</html>
