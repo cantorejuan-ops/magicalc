@@ -32,6 +32,8 @@ body.ios{--bg:#000;--fg:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pr
 body.ios .ios-only{display:grid}
 body.ios .ios-only.flex{display:flex}
 #iosVal{font-size:86px;font-weight:300;text-align:right;white-space:nowrap;overflow:hidden;line-height:1.05;letter-spacing:-1px}
+#iosExpr{display:none;font-size:30px;color:#8a8a8e;text-align:right;white-space:nowrap;overflow:hidden;min-height:38px;line-height:1.2}
+body.ios #iosExpr{display:block}
 body.ios .keys{gap:14px;padding:0 18px 34px}
 body.ios .keys button{border-radius:50%;font-size:36px;font-weight:400;color:#fff;background:#333;transition:filter .25s,background .25s,color .25s}
 body.ios .keys button.f{background:#a5a5a5;color:#000;font-size:30px;font-weight:500}
@@ -109,6 +111,7 @@ body.and .keys button:active,body.and .keys button.p{border-radius:28%;filter:br
       <div id="andMain">0</div>
       <div id="andPreview"></div>
     </div>
+    <div id="iosExpr"></div>
     <div id="iosVal" class="ios-only flex" style="justify-content:flex-end">0</div>
   </div>
 
@@ -406,6 +409,7 @@ function render(){
   $('#dot').style.display=(cfg.dot&&(cfg.armed||S.forcing))?'block':'none';
   if(ios){
     const el=$('#iosVal');el.textContent=fmt(iosValue());fit(el,86,40);
+    $('#iosExpr').textContent=S.afterEq?(S.prevExpr||''):(S.toks.length?exprStr(S.toks):'');
     const l=last();
     const typing=l&&l.t==='num'&&!S.afterEq&&S.toks.length>0&&!(S.toks.length===1&&l.s==='0');
     $('#iosAC').textContent='AC';
